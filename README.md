@@ -1,79 +1,58 @@
-# Spear Tech 2.0
+# Spear Tech
 
-A polished spear-focused addon built against **Meteor Client 26.2** for Minecraft 26.2.
+Spear Tech is a Meteor Client addon for Minecraft 26.2 focused on spear combat, movement and visualization.
 
-Spear Tech uses Meteor's native module, settings and HUD systems and keeps the UI intentionally close to Meteor's own style.
+The repository is intentionally small and review-friendly: the behavior is split into named modules, the Minecraft hooks are isolated in two Mixins, and there is no obfuscation or generated source.
 
-## Included modules
+## Modules
 
-### Combat
-- **Spear Swap** — smart hotbar swapping between Lunge and reach-focused spears.
-- **Spear Reach** — configurable entity interaction range while a spear is selected.
-- **One Shot** — configurable spear damage modifier with Minimum and Multiplier modes.
-- **Spear Cooldown** — blocks weak early swings until the configured charge is reached.
+| Module | Purpose |
+| --- | --- |
+| Spear Swap | Selects an appropriate spear from the hotbar before an attack. |
+| Lunge Boost | Adds a configurable impulse after a Lunge piercing attack. |
+| Spear Reach | Adjusts entity interaction range while using a spear. |
+| One Shot | Adjusts spear attack damage using a minimum or multiplier mode. |
+| Spear Cooldown | Prevents attacks below a configurable attack-charge threshold. |
+| Spear Velocity | Applies a configurable horizontal movement multiplier. |
+| Spear Range Preview | Draws the current interaction range in-world. |
+| Spear Status HUD | Shows spear charge, reach and Lunge level. |
 
-### Movement
-- **Lunge Boost** — configurable horizontal and vertical impulse after a Lunge spear attack.
-- **Spear Velocity** — configurable movement momentum while moving with a spear.
-
-### Visuals
-- **Spear Range Preview** — renders a live 3D line for the current entity interaction range.
-- **Spear Status HUD** — shows attack charge, effective reach and Lunge level in Meteor's HUD editor.
-
-## Quick setup
-
-1. Install **Fabric Loader 0.19.3+**.
-2. Install **Meteor Client 26.2**.
-3. Put `spear-tech-2.0.0.jar` in your Minecraft `mods` folder.
-4. Start Minecraft and open Meteor's ClickGUI.
-5. Open the **Spear Tech** category.
-6. For the HUD: open Meteor HUD editor → add **Spear Status** from the **Spear Tech** group.
-
-## Recommended starter config
-
-**Normal training**
-- Spear Swap: ON
-- Spear Cooldown: 92%
-- Lunge Boost: 0.75 horizontal / 0 vertical
-- Spear Range Preview: ON
-- Spear Status HUD: ON
-
-**Movement testing**
-- Lunge Boost: 1.25 horizontal
-- Spear Velocity: 1.08x / max speed 0.55
-
-**Damage testing**
-- One Shot: Minimum mode / 100 damage
-
-## Scope
-
-Gameplay-changing modifiers are intentionally scoped to worlds hosted and controlled by the user. Visual-only features such as the range preview do not alter game state.
-
-## Build from source
-
-Requires **JDK 25** and Internet access for Gradle dependencies.
-
-On Windows, the easiest method is:
-
-```bat
-BUILD.bat
-```
-
-`BUILD.bat` validates JDK 25, bootstraps the official Gradle 9.6.1 wrapper JAR when needed, and runs a clean build.
-
-Output:
+## Code map
 
 ```text
-build/libs/spear-tech-2.0.0.jar
+src/main/java/babou/speartech/
+├── SpearTechAddon.java        # Registration only
+├── modules/                   # One Meteor module per file
+├── mixin/                     # Minecraft hooks used by Reach, Damage and Lunge
+├── hud/                       # Visual-only Meteor HUD element
+└── util/WorldGuard.java       # Environment checks for gameplay modifiers
 ```
 
-## Target versions
+The two Mixins are deliberately small:
 
-- Minecraft: **26.2**
-- Meteor Client: **26.2-SNAPSHOT**
-- Fabric Loader: **0.19.3**
-- Java: **25**
-- Loom: **1.17-SNAPSHOT**
+- `PlayerMixin` forwards `entityInteractionRange()` to `SpearReach`.
+- `LivingEntityMixin` forwards attack damage to `OneShot` and completed piercing attacks to `LungeBoost`.
+
+## Build
+
+Requirements:
+
+- JDK 25
+- Gradle 9.6.1
+- Internet access for Fabric/Meteor dependencies
+
+```bash
+gradle build
+```
+
+The compiled JAR is written to `build/libs/`.
+
+## Target
+
+- Minecraft 26.2
+- Fabric Loader 0.19.3+
+- Meteor Client 26.2
+- Java 25
 
 ## License
 
