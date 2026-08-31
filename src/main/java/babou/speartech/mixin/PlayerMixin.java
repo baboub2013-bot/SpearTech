@@ -8,14 +8,18 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Lets SpearReach adjust Player.entityInteractionRange() after Minecraft
+ * computes the normal value.
+ */
 @Mixin(Player.class)
 public abstract class PlayerMixin {
     @Inject(method = "entityInteractionRange", at = @At("RETURN"), cancellable = true)
-    private void spearTech$entityInteractionRange(CallbackInfoReturnable<Double> cir) {
-        SpearReach module = Modules.get().get(SpearReach.class);
-        if (module == null) return;
+    private void spearTech$modifyInteractionRange(CallbackInfoReturnable<Double> cir) {
+        SpearReach spearReach = Modules.get().get(SpearReach.class);
+        if (spearReach == null) return;
 
         Player player = (Player) (Object) this;
-        cir.setReturnValue(module.modifyRange(player, cir.getReturnValueD()));
+        cir.setReturnValue(spearReach.modifyRange(player, cir.getReturnValueD()));
     }
 }
