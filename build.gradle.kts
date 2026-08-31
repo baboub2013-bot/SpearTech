@@ -1,60 +1,46 @@
 plugins {
-    alias(libs.plugins.fabric.loom)
+    id("fabric-loom") version "1.17-SNAPSHOT"
 }
 
+group = "babou.speartech"
+version = "2.0.0"
+
 base {
-    archivesName = properties["archives_base_name"] as String
-    version = libs.versions.mod.version.get()
-    group = properties["maven_group"] as String
+    archivesName = "spear-tech"
 }
 
 repositories {
-    maven {
-        name = "meteor-maven"
-        url = uri("https://maven.meteordev.org/releases")
+    maven("https://maven.meteordev.org/releases") {
+        name = "Meteor Releases"
     }
-    maven {
-        name = "meteor-maven-snapshots"
-        url = uri("https://maven.meteordev.org/snapshots")
+
+    maven("https://maven.meteordev.org/snapshots") {
+        name = "Meteor Snapshots"
     }
 }
 
 dependencies {
-    minecraft(libs.minecraft)
-    implementation(libs.fabric.loader)
-    implementation(libs.meteor.client)
+    minecraft("com.mojang:minecraft:26.2")
+    implementation("net.fabricmc:fabric-loader:0.19.3")
+    implementation("meteordevelopment:meteor-client:26.2-SNAPSHOT")
 }
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(libs.versions.jdk.get().toInt()))
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
-fun toMinecraftCompat(version: String): String {
-    val match = Regex("""^(\d{2})\.([1-9]\d*)(?:\.([1-9]\d*))?$""")
-        .matchEntire(version)
-        ?: error("Invalid Minecraft version format: $version")
+tasks.processResources {
+    val values = mapOf(
+        "version" to project.version,
+        "minecraft_version" to "~26.2",
+        "jdk_version" to "25"
+    )
 
-    val (year, drop, _) = match.destructured
-    return "~$year.$drop"
-}
+    inputs.properties(values)
 
-tasks {
-    processResources {
-        val propertyMap = mapOf(
-            "version" to project.version,
-            "minecraft_version" to toMinecraftCompat(libs.versions.minecraft.get()),
-            "jdk_version" to libs.versions.jdk.get()
-        )
-
-        inputs.properties(propertyMap)
-        filesMatching("fabric.mod.json") {
-            expand(propertyMap)
-        }
-    }
-
-    withType<JavaCompile>().configureEach {
-        options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
+    filesMatching("fabric.mod.json") {
+        expand(values)
     }
 }
