@@ -1,8 +1,8 @@
 # Spear Tech 2.0
 
-A polished spear-focused addon built against the supplied **Meteor Client 26.2** source tree.
+A polished spear-focused addon built against **Meteor Client 26.2** for Minecraft 26.2.
 
-Spear Tech uses Meteor's native module/settings/HUD systems and keeps the UI intentionally close to Meteor's own style.
+Spear Tech uses Meteor's native module, settings and HUD systems and keeps the UI intentionally close to Meteor's own style.
 
 ## Included modules
 
@@ -53,19 +53,19 @@ Gameplay-changing modifiers are intentionally scoped to worlds hosted and contro
 
 Requires **JDK 25** and Internet access for Gradle dependencies.
 
-Windows:
+On Windows, the easiest method is:
 
 ```bat
-gradlew.bat build
+BUILD.bat
 ```
+
+`BUILD.bat` validates JDK 25, bootstraps the official Gradle 9.6.1 wrapper JAR when needed, and runs a clean build.
 
 Output:
 
 ```text
 build/libs/spear-tech-2.0.0.jar
 ```
-
-You can also double-click `BUILD.bat`.
 
 ## Target versions
 
