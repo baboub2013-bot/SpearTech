@@ -4,8 +4,8 @@ import babou.speartech.hud.SpearStatusHud;
 import babou.speartech.modules.LungeBoost;
 import babou.speartech.modules.OneShot;
 import babou.speartech.modules.SpearCooldown;
-import babou.speartech.modules.SpearReach;
 import babou.speartech.modules.SpearRangePreview;
+import babou.speartech.modules.SpearReach;
 import babou.speartech.modules.SpearSwap;
 import babou.speartech.modules.SpearVelocity;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
@@ -16,26 +16,33 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.render.DisplayItemUtils;
 import net.minecraft.world.item.Items;
 
-public class SpearTechAddon extends MeteorAddon {
-    public static final Category SPEAR = new Category("Spear Tech", () -> DisplayItemUtils.toStack(Items.DIAMOND_SPEAR));
+/**
+ * Meteor entry point. This class only registers Spear Tech modules and HUD elements.
+ */
+public final class SpearTechAddon extends MeteorAddon {
+    public static final Category CATEGORY =
+        new Category("Spear Tech", () -> DisplayItemUtils.toStack(Items.DIAMOND_SPEAR));
+
     public static final HudGroup HUD_GROUP = new HudGroup("Spear Tech");
 
     @Override
     public void onInitialize() {
-        Modules.get().add(new SpearSwap());
-        Modules.get().add(new LungeBoost());
-        Modules.get().add(new SpearReach());
-        Modules.get().add(new OneShot());
-        Modules.get().add(new SpearCooldown());
-        Modules.get().add(new SpearVelocity());
-        Modules.get().add(new SpearRangePreview());
+        Modules modules = Modules.get();
+
+        modules.add(new SpearSwap());
+        modules.add(new LungeBoost());
+        modules.add(new SpearReach());
+        modules.add(new OneShot());
+        modules.add(new SpearCooldown());
+        modules.add(new SpearVelocity());
+        modules.add(new SpearRangePreview());
 
         Hud.get().register(SpearStatusHud.INFO);
     }
 
     @Override
     public void onRegisterCategories() {
-        Modules.registerCategory(SPEAR);
+        Modules.registerCategory(CATEGORY);
     }
 
     @Override
