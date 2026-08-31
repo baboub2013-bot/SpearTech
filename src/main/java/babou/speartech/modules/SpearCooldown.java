@@ -8,10 +8,14 @@ import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.tags.ItemTags;
 
-public class SpearCooldown extends SpearModule {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+/**
+ * Cancels an attack event when the configured attack-charge threshold has
+ * not been reached yet.
+ */
+public final class SpearCooldown extends SpearModule {
+    private final SettingGroup general = settings.getDefaultGroup();
 
-    private final Setting<Double> minimumCharge = sgGeneral.add(new DoubleSetting.Builder()
+    private final Setting<Double> minimumCharge = general.add(new DoubleSetting.Builder()
         .name("minimum-charge")
         .description("Blocks an attack until the spear cooldown reaches this percentage.")
         .defaultValue(0.92)
@@ -21,7 +25,7 @@ public class SpearCooldown extends SpearModule {
         .build()
     );
 
-    private final Setting<Boolean> spearOnly = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> spearOnly = general.add(new BoolSetting.Builder()
         .name("spear-only")
         .description("Only applies the cooldown guard while holding a spear.")
         .defaultValue(true)
@@ -35,9 +39,14 @@ public class SpearCooldown extends SpearModule {
     @EventHandler
     private void onAttack(DoAttackEvent event) {
         if (!canRun()) return;
-        if (spearOnly.get() && !mc.player.getMainHandItem().is(ItemTags.SPEARS)) return;
 
-        if (mc.player.getAttackStrengthScale(0.0f) < minimumCharge.get()) event.cancel();
+        if (spearOnly.get() && !mc.player.getMainHandItem().is(ItemTags.SPEARS)) {
+            return;
+        }
+
+        if (mc.player.getAttackStrengthScale(0.0f) < minimumCharge.get()) {
+            event.cancel();
+        }
     }
 
     @Override
