@@ -3,8 +3,10 @@
   "id": "spear-tech",
   "version": "${version}",
   "name": "Spear Tech",
-  "description": "Advanced spear combat, movement and HUD utilities for Meteor Client.",
-  "authors": ["Babou"],
+  "description": "Spear combat, movement and visualization utilities for Meteor Client.",
+  "authors": [
+    "Babou"
+  ],
   "license": "GPL-3.0-only",
   "environment": "client",
   "entrypoints": {
