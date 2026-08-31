@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "spear-tech",
+  "version": "${version}",
+  "name": "Spear Tech",
+  "description": "Advanced spear combat, movement and HUD utilities for Meteor Client.",
+  "authors": ["Babou"],
+  "license": "GPL-3.0-only",
+  "environment": "client",
+  "entrypoints": {
+    "meteor": [
+      "babou.speartech.SpearTechAddon"
+    ]
+  },
+  "mixins": [
+    "spear-tech.mixins.json"
+  ],
+  "custom": {
+    "meteor-client:color": "145,61,226"
+  },
+  "depends": {
+    "java": ">=${jdk_version}",
+    "minecraft": "${minecraft_version}",
+    "fabricloader": ">=0.19.3",
+    "meteor-client": "*"
+  }
+}
