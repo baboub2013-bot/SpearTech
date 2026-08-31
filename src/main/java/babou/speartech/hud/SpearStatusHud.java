@@ -15,7 +15,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.enchantment.Enchantments;
 
-public class SpearStatusHud extends HudElement {
+/**
+ * Visual-only Meteor HUD element for the selected spear.
+ */
+public final class SpearStatusHud extends HudElement {
     public static final HudElementInfo<SpearStatusHud> INFO = new HudElementInfo<>(
         SpearTechAddon.HUD_GROUP,
         "spear-status",
@@ -23,30 +26,30 @@ public class SpearStatusHud extends HudElement {
         SpearStatusHud::new
     );
 
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    private final SettingGroup general = settings.getDefaultGroup();
 
-    private final Setting<Boolean> shadow = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> shadow = general.add(new BoolSetting.Builder()
         .name("shadow")
         .description("Adds a shadow behind the HUD text.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<SettingColor> labelColor = sgGeneral.add(new ColorSetting.Builder()
+    private final Setting<SettingColor> labelColor = general.add(new ColorSetting.Builder()
         .name("label-color")
         .description("Color used for labels.")
         .defaultValue(new SettingColor(180, 180, 180))
         .build()
     );
 
-    private final Setting<SettingColor> valueColor = sgGeneral.add(new ColorSetting.Builder()
+    private final Setting<SettingColor> valueColor = general.add(new ColorSetting.Builder()
         .name("value-color")
         .description("Color used for values.")
         .defaultValue(new SettingColor(255, 255, 255))
         .build()
     );
 
-    private final Setting<SettingColor> readyColor = sgGeneral.add(new ColorSetting.Builder()
+    private final Setting<SettingColor> readyColor = general.add(new ColorSetting.Builder()
         .name("ready-color")
         .description("Color used when the spear attack is fully charged.")
         .defaultValue(new SettingColor(80, 230, 120))
@@ -62,27 +65,60 @@ public class SpearStatusHud extends HudElement {
         Minecraft mc = Minecraft.getInstance();
 
         if (mc.player == null) {
-            if (!isInEditor()) return;
-            renderLine(renderer, "Spear", "Ready • 3.0m • Lunge III", true);
+            renderEditorPreview(renderer);
             return;
         }
 
-        boolean spear = mc.player.getMainHandItem().is(ItemTags.SPEARS);
-        float charge = mc.player.getAttackStrengthScale(0.0f);
+        boolean holdingSpear = mc.player.getMainHandItem().is(ItemTags.SPEARS);
+        float attackCharge = mc.player.getAttackStrengthScale(0.0f);
         double reach = mc.player.entityInteractionRange();
-        int lunge = spear ? Utils.getEnchantmentLevel(mc.player.getMainHandItem(), Enchantments.LUNGE) : 0;
 
-        String state = spear ? (charge >= 0.99f ? "Ready" : Math.round(charge * 100f) + "%") : "No spear";
-        String right = state + " • " + String.format("%.1fm", reach) + " • Lunge " + roman(lunge);
+        int lungeLevel = holdingSpear
+            ? Utils.getEnchantmentLevel(mc.player.getMainHandItem(), Enchantments.LUNGE)
+            : 0;
 
-        renderLine(renderer, "Spear", right, spear && charge >= 0.99f);
+        String state = statusText(holdingSpear, attackCharge);
+        String details = state
+            + " • " + String.format("%.1fm", reach)
+            + " • Lunge " + roman(lungeLevel);
+
+        renderLine(renderer, details, holdingSpear && attackCharge >= 0.99f);
     }
 
-    private void renderLine(HudRenderer renderer, String left, String right, boolean ready) {
+    private void renderEditorPreview(HudRenderer renderer) {
+        if (isInEditor()) {
+            renderLine(renderer, "Ready • 3.0m • Lunge III", true);
+        }
+    }
+
+    private void renderLine(HudRenderer renderer, String details, boolean ready) {
         double scale = Hud.get().getTextScale();
-        double x2 = renderer.text(left + "  ", x, y, labelColor.get(), shadow.get(), scale);
-        x2 = renderer.text(right, x2, y, ready ? readyColor.get() : valueColor.get(), shadow.get(), scale);
-        setSize(x2 - x, renderer.textHeight(shadow.get(), scale));
+
+        double valueX = renderer.text(
+            "Spear  ",
+            x,
+            y,
+            labelColor.get(),
+            shadow.get(),
+            scale
+        );
+
+        double endX = renderer.text(
+            details,
+            valueX,
+            y,
+            ready ? readyColor.get() : valueColor.get(),
+            shadow.get(),
+            scale
+        );
+
+        setSize(endX - x, renderer.textHeight(shadow.get(), scale));
+    }
+
+    private static String statusText(boolean holdingSpear, float attackCharge) {
+        if (!holdingSpear) return "No spear";
+        if (attackCharge >= 0.99f) return "Ready";
+        return Math.round(attackCharge * 100f) + "%";
     }
 
     private static String roman(int level) {
