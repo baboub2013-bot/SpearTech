@@ -8,10 +8,13 @@ import meteordevelopment.meteorclient.settings.SettingGroup;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.player.Player;
 
-public class SpearReach extends SpearModule {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+/**
+ * Supplies a modified entity interaction range to PlayerMixin.
+ */
+public final class SpearReach extends SpearModule {
+    private final SettingGroup general = settings.getDefaultGroup();
 
-    private final Setting<Double> extraReach = sgGeneral.add(new DoubleSetting.Builder()
+    private final Setting<Double> extraReach = general.add(new DoubleSetting.Builder()
         .name("extra-reach")
         .description("Additional entity interaction range while using a spear.")
         .defaultValue(3.0)
@@ -21,7 +24,7 @@ public class SpearReach extends SpearModule {
         .build()
     );
 
-    private final Setting<Boolean> spearOnly = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> spearOnly = general.add(new BoolSetting.Builder()
         .name("spear-only")
         .description("Only modifies reach while a spear is selected.")
         .defaultValue(true)
@@ -32,11 +35,16 @@ public class SpearReach extends SpearModule {
         super("spear-reach", "Adds configurable entity interaction range while using a spear.");
     }
 
-    public double modifyRange(Player player, double original) {
-        if (!isActive() || !WorldGuard.isOwnedPlayer(player)) return original;
-        if (spearOnly.get() && !player.getMainHandItem().is(ItemTags.SPEARS)) return original;
+    public double modifyRange(Player player, double originalRange) {
+        if (!isActive() || !WorldGuard.isOwnedPlayer(player)) {
+            return originalRange;
+        }
 
-        return Math.max(0.0, original + extraReach.get());
+        if (spearOnly.get() && !player.getMainHandItem().is(ItemTags.SPEARS)) {
+            return originalRange;
+        }
+
+        return Math.max(0.0, originalRange + extraReach.get());
     }
 
     @Override
