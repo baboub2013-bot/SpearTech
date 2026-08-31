@@ -18,35 +18,39 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-public class SpearSwap extends SpearModule {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgSmart = settings.createGroup("Smart Swap");
+/**
+ * Chooses a spear from the hotbar before an attack, then optionally restores
+ * the previously selected slot.
+ */
+public final class SpearSwap extends SpearModule {
+    private final SettingGroup general = settings.getDefaultGroup();
+    private final SettingGroup smartSwap = settings.createGroup("Smart Swap");
 
-    private final Setting<Boolean> lungeOnMiss = sgSmart.add(new BoolSetting.Builder()
+    private final Setting<Boolean> lungeOnMiss = smartSwap.add(new BoolSetting.Builder()
         .name("lunge-on-miss")
         .description("Swaps to a Lunge spear when attacking without a normal in-range target.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Boolean> reachSpear = sgSmart.add(new BoolSetting.Builder()
+    private final Setting<Boolean> reachSpear = smartSwap.add(new BoolSetting.Builder()
         .name("reach-spear")
-        .description("Prefers a non-Lunge spear when a target is farther than the current normal interaction range.")
+        .description("Prefers a non-Lunge spear when a target is outside normal interaction range.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Boolean> excludeLungeFromReach = sgSmart.add(new BoolSetting.Builder()
+    private final Setting<Boolean> excludeLungeFromReach = smartSwap.add(new BoolSetting.Builder()
         .name("exclude-lunge-from-reach")
-        .description("Does not pick a Lunge spear for the reach swap.")
+        .description("Does not select a Lunge spear for the reach swap.")
         .defaultValue(true)
         .visible(reachSpear::get)
         .build()
     );
 
-    private final Setting<Integer> scanRange = sgSmart.add(new IntSetting.Builder()
+    private final Setting<Integer> scanRange = smartSwap.add(new IntSetting.Builder()
         .name("scan-range")
-        .description("Distance used to look for a spear target in front of you.")
+        .description("Maximum distance used to look for a target in front of the player.")
         .defaultValue(8)
         .min(3)
         .max(20)
@@ -55,16 +59,16 @@ public class SpearSwap extends SpearModule {
         .build()
     );
 
-    private final Setting<Boolean> swapBack = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> swapBack = general.add(new BoolSetting.Builder()
         .name("swap-back")
-        .description("Returns to the original slot after swapping.")
+        .description("Returns to the original hotbar slot after swapping.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Integer> swapBackDelay = sgGeneral.add(new IntSetting.Builder()
+    private final Setting<Integer> swapBackDelay = general.add(new IntSetting.Builder()
         .name("swap-back-delay")
-        .description("Ticks to wait before swapping back.")
+        .description("Ticks to wait before restoring the original slot.")
         .defaultValue(2)
         .min(0)
         .max(20)
@@ -73,108 +77,125 @@ public class SpearSwap extends SpearModule {
         .build()
     );
 
-    private int backTimer;
-    private boolean awaitingBack;
+    private boolean waitingToSwapBack;
+    private int swapBackTimer;
 
     public SpearSwap() {
-        super("spear-swap", "Meteor-style smart hotbar swapping for spear reach and Lunge movement.");
+        super("spear-swap", "Selects an appropriate spear from the hotbar before an attack.");
     }
 
     @Override
     public void onDeactivate() {
-        if (awaitingBack) InvUtils.swapBack();
-        awaitingBack = false;
-        backTimer = 0;
+        restoreOriginalSlot();
     }
 
     @EventHandler
     private void onAttack(DoAttackEvent event) {
-        if (!canRun() || awaitingBack || mc.hitResult == null) return;
+        if (!canRun() || waitingToSwapBack || mc.hitResult == null) return;
         if (mc.hitResult.getType() == HitResult.Type.BLOCK) return;
 
-        if (reachSpear.get()) {
-            Entity target = getTargetEntity();
-            if (target != null && mc.player.distanceTo(target) > mc.player.entityInteractionRange() + 0.5) {
-                int slot = getSpearSlot(false);
-                if (slot != -1) {
-                    doSwap(slot);
-                    return;
-                }
-            }
-        }
+        if (tryReachSwap()) return;
 
         if (lungeOnMiss.get()) {
-            int slot = getSpearSlot(true);
-            if (slot != -1) doSwap(slot);
+            swapTo(findSpearSlot(true));
         }
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
-        if (!awaitingBack) return;
+        if (!waitingToSwapBack) return;
+
         if (!WorldGuard.canModifyGameplay()) {
-            InvUtils.swapBack();
-            awaitingBack = false;
+            restoreOriginalSlot();
             return;
         }
 
-        if (backTimer-- > 0) return;
-
-        InvUtils.swapBack();
-        awaitingBack = false;
+        if (swapBackTimer-- > 0) return;
+        restoreOriginalSlot();
     }
 
-    private void doSwap(int slot) {
-        if (slot < 0 || slot > 8) return;
-        if (slot == mc.player.getInventory().getSelectedSlot()) return;
-        if (!InvUtils.swap(slot, swapBack.get())) return;
+    private boolean tryReachSwap() {
+        if (!reachSpear.get()) return false;
 
-        awaitingBack = swapBack.get();
-        if (awaitingBack) backTimer = swapBackDelay.get();
+        Entity target = findTargetInView();
+        if (target == null) return false;
+
+        double normalRange = mc.player.entityInteractionRange();
+        if (mc.player.distanceTo(target) <= normalRange + 0.5) return false;
+
+        return swapTo(findSpearSlot(false));
     }
 
-    private int getSpearSlot(boolean requireLunge) {
-        int bestSlot = -1;
-        int bestLevel = -1;
+    private boolean swapTo(int slot) {
+        if (slot < 0 || slot > 8) return false;
+        if (slot == mc.player.getInventory().getSelectedSlot()) return false;
+        if (!InvUtils.swap(slot, swapBack.get())) return false;
 
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.getInventory().getItem(i);
+        waitingToSwapBack = swapBack.get();
+        swapBackTimer = swapBackDelay.get();
+        return true;
+    }
+
+    private void restoreOriginalSlot() {
+        if (waitingToSwapBack) {
+            InvUtils.swapBack();
+        }
+
+        waitingToSwapBack = false;
+        swapBackTimer = 0;
+    }
+
+    private int findSpearSlot(boolean requireLunge) {
+        int selectedSlot = -1;
+        int selectedLungeLevel = -1;
+
+        for (int slot = 0; slot < 9; slot++) {
+            ItemStack stack = mc.player.getInventory().getItem(slot);
             if (!stack.is(ItemTags.SPEARS)) continue;
 
-            int lunge = Utils.getEnchantmentLevel(stack, Enchantments.LUNGE);
-            if (requireLunge && lunge <= 0) continue;
-            if (!requireLunge && excludeLungeFromReach.get() && lunge > 0) continue;
+            int lungeLevel = Utils.getEnchantmentLevel(stack, Enchantments.LUNGE);
 
-            if (lunge > bestLevel) {
-                bestLevel = lunge;
-                bestSlot = i;
+            if (requireLunge && lungeLevel <= 0) continue;
+            if (!requireLunge && excludeLungeFromReach.get() && lungeLevel > 0) continue;
+
+            if (lungeLevel > selectedLungeLevel) {
+                selectedLungeLevel = lungeLevel;
+                selectedSlot = slot;
             }
         }
 
-        return bestSlot;
+        return selectedSlot;
     }
 
-    private Entity getTargetEntity() {
-        double maxDistance = scanRange.get();
+    private Entity findTargetInView() {
+        double distance = scanRange.get();
         Vec3 start = mc.player.getEyePosition(1.0F);
-        Vec3 look = mc.player.getViewVector(1.0F);
-        Vec3 end = start.add(look.scale(maxDistance));
+        Vec3 direction = mc.player.getViewVector(1.0F);
+        Vec3 end = start.add(direction.scale(distance));
 
-        AABB searchBox = mc.player.getBoundingBox().expandTowards(look.scale(maxDistance)).inflate(1.0);
-        Entity closest = null;
-        double closestDistance = maxDistance * maxDistance;
+        AABB searchBox = mc.player
+            .getBoundingBox()
+            .expandTowards(direction.scale(distance))
+            .inflate(1.0);
 
-        for (Entity entity : mc.level.getEntities(mc.player, searchBox, e -> !e.isSpectator() && e.isPickable())) {
+        Entity closestTarget = null;
+        double closestDistanceSquared = distance * distance;
+
+        for (Entity entity : mc.level.getEntities(
+            mc.player,
+            searchBox,
+            candidate -> !candidate.isSpectator() && candidate.isPickable()
+        )) {
             AABB hitbox = entity.getBoundingBox().inflate(0.15);
             if (hitbox.clip(start, end).isEmpty()) continue;
 
-            double distance = start.distanceToSqr(entity.position());
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closest = entity;
-            }
+            double distanceSquared = start.distanceToSqr(entity.position());
+            if (distanceSquared >= closestDistanceSquared) continue;
+
+            closestDistanceSquared = distanceSquared;
+            closestTarget = entity;
         }
 
-        return closest;
+        return closestTarget;
     }
 }
