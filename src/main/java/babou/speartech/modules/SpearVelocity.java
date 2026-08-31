@@ -10,10 +10,14 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 
-public class SpearVelocity extends SpearModule {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+/**
+ * Scales existing horizontal player velocity while the configured movement
+ * conditions are met.
+ */
+public final class SpearVelocity extends SpearModule {
+    private final SettingGroup general = settings.getDefaultGroup();
 
-    private final Setting<Double> multiplier = sgGeneral.add(new DoubleSetting.Builder()
+    private final Setting<Double> multiplier = general.add(new DoubleSetting.Builder()
         .name("multiplier")
         .description("Horizontal movement multiplier applied while moving with a spear.")
         .defaultValue(1.08)
@@ -23,7 +27,7 @@ public class SpearVelocity extends SpearModule {
         .build()
     );
 
-    private final Setting<Double> maxSpeed = sgGeneral.add(new DoubleSetting.Builder()
+    private final Setting<Double> maxSpeed = general.add(new DoubleSetting.Builder()
         .name("max-speed")
         .description("Maximum horizontal velocity after the multiplier is applied.")
         .defaultValue(0.55)
@@ -33,14 +37,14 @@ public class SpearVelocity extends SpearModule {
         .build()
     );
 
-    private final Setting<Boolean> onlyOnGround = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> onlyOnGround = general.add(new BoolSetting.Builder()
         .name("only-on-ground")
         .description("Only applies the velocity multiplier while standing on the ground.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Boolean> requireSpear = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> requireSpear = general.add(new BoolSetting.Builder()
         .name("require-spear")
         .description("Requires a spear in the main hand.")
         .defaultValue(true)
@@ -54,21 +58,37 @@ public class SpearVelocity extends SpearModule {
     @EventHandler
     private void onTick(TickEvent.Post event) {
         if (!canRun()) return;
-        if (requireSpear.get() && !mc.player.getMainHandItem().is(ItemTags.SPEARS)) return;
+        if (!hasRequiredItem()) return;
         if (onlyOnGround.get() && !mc.player.onGround()) return;
-
-        Vec2 input = mc.player.input.getMoveVector();
-        if (input.x * input.x + input.y * input.y <= 1.0E-6f) return;
+        if (!isMoving()) return;
 
         Vec3 velocity = mc.player.getDeltaMovement();
-        double horizontal = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
-        if (horizontal <= 1.0E-7) return;
+        double currentSpeed = horizontalSpeed(velocity);
 
-        double boosted = Math.min(maxSpeed.get(), horizontal * multiplier.get());
-        if (boosted <= horizontal) return;
+        if (currentSpeed <= 1.0E-7) return;
 
-        double scale = boosted / horizontal;
-        mc.player.setDeltaMovement(velocity.x * scale, velocity.y, velocity.z * scale);
+        double targetSpeed = Math.min(maxSpeed.get(), currentSpeed * multiplier.get());
+        if (targetSpeed <= currentSpeed) return;
+
+        double scale = targetSpeed / currentSpeed;
+        mc.player.setDeltaMovement(
+            velocity.x * scale,
+            velocity.y,
+            velocity.z * scale
+        );
+    }
+
+    private boolean hasRequiredItem() {
+        return !requireSpear.get() || mc.player.getMainHandItem().is(ItemTags.SPEARS);
+    }
+
+    private boolean isMoving() {
+        Vec2 input = mc.player.input.getMoveVector();
+        return input.x * input.x + input.y * input.y > 1.0E-6f;
+    }
+
+    private static double horizontalSpeed(Vec3 velocity) {
+        return Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
     }
 
     @Override
