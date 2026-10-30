@@ -1,5 +1,5 @@
 plugins {
-    id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
+    id("net.fabricmc.fabric-loom") version "1.18-SNAPSHOT"
 }
 
 group = "babou.speartech"
@@ -20,9 +20,9 @@ repositories {
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:26.2")
-    implementation("net.fabricmc:fabric-loader:0.19.3")
-    implementation("meteordevelopment:meteor-client:26.2-SNAPSHOT")
+    minecraft("com.mojang:minecraft:26.3")
+    implementation("net.fabricmc:fabric-loader:0.19.5")
+    implementation("meteordevelopment:meteor-client:26.3-SNAPSHOT")
 }
 
 java {
@@ -34,7 +34,7 @@ java {
 tasks.processResources {
     val values = mapOf(
         "version" to project.version,
-        "minecraft_version" to "~26.2",
+        "minecraft_version" to "~26.3",
         "jdk_version" to "25"
     )
 

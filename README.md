@@ -1,6 +1,6 @@
 # Spear Tech
 
-Spear Tech is a Meteor Client addon for Minecraft 26.2 focused on spear combat, movement and visualization.
+Spear Tech is a Meteor Client addon for Minecraft 26.3 focused on spear combat, movement and visualization.
 
 The repository is intentionally small and review-friendly: the behavior is split into named modules, the Minecraft hooks are isolated in two Mixins, and there is no obfuscation or generated source.
 
@@ -38,7 +38,7 @@ The two Mixins are deliberately small:
 Requirements:
 
 - JDK 25
-- Gradle 9.6.1
+- Gradle 9.8.1
 - Internet access for Fabric/Meteor dependencies
 
 ```bash
@@ -49,9 +49,9 @@ The compiled JAR is written to `build/libs/`.
 
 ## Target
 
-- Minecraft 26.2
-- Fabric Loader 0.19.3+
-- Meteor Client 26.2
+- Minecraft 26.3
+- Fabric Loader 0.19.5+
+- Meteor Client 26.3
 - Java 25
 
 ## License
